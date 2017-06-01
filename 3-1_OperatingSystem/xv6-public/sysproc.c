@@ -132,15 +132,16 @@ sys_thread_exit(void)
 int
 sys_sbrk(void)
 {
-  int addr;
   int n;
 
   if(argint(0, &n) < 0)
     return -1;
-  addr = proc->sz;
   if(growproc(n) < 0)
     return -1;
-  return addr;
+  if(proc->isThread)
+      return (proc->parent->sz + PGSIZE*64 -n);
+  else if(proc->cntchild == 0) return (proc->sz - n);
+  else return (proc->sz + PGSIZE*64 -n);
 }
 
 int
