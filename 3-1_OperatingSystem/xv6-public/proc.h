@@ -71,9 +71,10 @@ struct proc {
   int timeslice[3];
 
   /* for Stride Scheduling */
-  int share;
-  int stride;
-  int pvalue;
+  double share;
+  double fixedshare;
+  double stride;
+  double pvalue;
   int isStride;
 
   /* for LWP */
@@ -82,6 +83,9 @@ struct proc {
   int isPageEmpty[64];         // If non-zero , stack of child thread is not empty
   void *retValArr[64];         // address of return value of child thread
   uint baseAddr;               // base address of stack
+  int orphan;                  // If non-zero , have no parent
+  int realsz;                  // Unchanged stack size
+  int cntchild;                // If non-zero , is number of child thread
 
 };
 
@@ -91,8 +95,8 @@ typedef uint thread_t;
 
 int schedMode;
 int checkingWhetherStrideOrNot;
-int mlfq_Stride;
-int mlfq_PassValue;
+double mlfq_Stride;
+double mlfq_PassValue;
 unsigned int ticksCount;
 // Process memory is laid out contiguously, low addresses first:
 //   text
