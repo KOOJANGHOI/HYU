@@ -1,0 +1,117 @@
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "1GM-W9-07R"; */
+"1GM-W9-07R.text" = "Label";
+
+/* Class = "UIButton"; normalTitle = "분식"; ObjectID = "1Rr-sr-nCf"; */
+"1Rr-sr-nCf.normalTitle" = "분식";
+
+/* Class = "UIButton"; normalTitle = "족발"; ObjectID = "1cD-Ak-LaU"; */
+"1cD-Ak-LaU.normalTitle" = "족발";
+
+/* Class = "UIButton"; normalTitle = "패스트푸드"; ObjectID = "6QE-Ve-dYK"; */
+"6QE-Ve-dYK.normalTitle" = "패스트푸드";
+
+/* Class = "UITextView"; text = "한양대학교 주변 소상공인의 매출 증대와 전단지 난립으로 인한 환경문제를 동시에 해결하기 위한 어플리케이션입니다.  by 한양대학교 App & Web 개발 동아리 Forif"; ObjectID = "8X4-l7-nsO"; */
+"8X4-l7-nsO.text" = "한양대학교 주변 소상공인의 매출 증대와 전단지 난립으로 인한 환경문제를 동시에 해결하기 위한 어플리케이션입니다.  by 한양대학교 App & Web 개발 동아리 Forif";
+
+/* Class = "UIButton"; normalTitle = "피자"; ObjectID = "ChD-vx-TTN"; */
+"ChD-vx-TTN.normalTitle" = "피자";
+
+/* Class = "UITextView"; text = "내용을 입력하세요.."; ObjectID = "F1C-G6-sRJ"; */
+"F1C-G6-sRJ.text" = "내용을 입력하세요..";
+
+/* Class = "UIButton"; normalTitle = "세탁소"; ObjectID = "IL5-zJ-dUG"; */
+"IL5-zJ-dUG.normalTitle" = "세탁소";
+
+/* Class = "UIButton"; normalTitle = "병원"; ObjectID = "It9-Xw-GuX"; */
+"It9-Xw-GuX.normalTitle" = "병원";
+
+/* Class = "UILabel"; text = "영업시간 : 08:00-20:00"; ObjectID = "Jik-AO-yp8"; */
+"Jik-AO-yp8.text" = "영업시간 : 08:00-20:00";
+
+/* Class = "UIButton"; normalTitle = "중식"; ObjectID = "MkX-u7-RLt"; */
+"MkX-u7-RLt.normalTitle" = "중식";
+
+/* Class = "UILabel"; text = "영업시간 : 08:00-20:00"; ObjectID = "OJL-X5-AhQ"; */
+"OJL-X5-AhQ.text" = "영업시간 : 08:00-20:00";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "QeU-sB-IQG"; */
+"QeU-sB-IQG.text" = "Label";
+
+/* Class = "UILabel"; text = "tel : 050-2295-4825"; ObjectID = "Qp9-xK-eeq"; */
+"Qp9-xK-eeq.text" = "tel : 050-2295-4825";
+
+/* Class = "UILabel"; text = "tel : 050-2295-4825"; ObjectID = "TGr-38-XxO"; */
+"TGr-38-XxO.text" = "tel : 050-2295-4825";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "UuH-sw-b0y"; */
+"UuH-sw-b0y.text" = "Label";
+
+/* Class = "UIButton"; normalTitle = "편의점"; ObjectID = "V1X-z9-7uC"; */
+"V1X-z9-7uC.normalTitle" = "편의점";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "Vcf-kq-OT0"; */
+"Vcf-kq-OT0.text" = "Label";
+
+/* Class = "UISearchBar"; placeholder = "검색"; ObjectID = "Vji-l3-nqW"; */
+"Vji-l3-nqW.placeholder" = "검색";
+
+/* Class = "UIButton"; normalTitle = "치킨"; ObjectID = "a3w-Sn-eE1"; */
+"a3w-Sn-eE1.normalTitle" = "치킨";
+
+/* Class = "UIButton"; normalTitle = "한식"; ObjectID = "bmT-qk-mBH"; */
+"bmT-qk-mBH.normalTitle" = "한식";
+
+/* Class = "UIButton"; normalTitle = "페이스북으로 문의하기"; ObjectID = "c37-TN-czp"; */
+"c37-TN-czp.normalTitle" = "페이스북으로 문의하기";
+
+/* Class = "UIButton"; normalTitle = "약국"; ObjectID = "cNz-OO-27W"; */
+"cNz-OO-27W.normalTitle" = "약국";
+
+/* Class = "UIButton"; normalTitle = "인쇄소"; ObjectID = "cdj-DG-9iI"; */
+"cdj-DG-9iI.normalTitle" = "인쇄소";
+
+/* Class = "UIButton"; normalTitle = "은행/ATM"; ObjectID = "dj0-XH-Y6p"; */
+"dj0-XH-Y6p.normalTitle" = "은행/ATM";
+
+/* Class = "UIButton"; normalTitle = "어플 소개"; ObjectID = "eLj-0T-bXB"; */
+"eLj-0T-bXB.normalTitle" = "어플 소개";
+
+/* Class = "UISegmentedControl"; g0A-0G-eVY.segmentTitles[0] = "배달"; ObjectID = "g0A-0G-eVY"; */
+"g0A-0G-eVY.segmentTitles[0]" = "배달";
+
+/* Class = "UISegmentedControl"; g0A-0G-eVY.segmentTitles[1] = "생활정보"; ObjectID = "g0A-0G-eVY"; */
+"g0A-0G-eVY.segmentTitles[1]" = "생활정보";
+
+/* Class = "UIButton"; normalTitle = "의류수선"; ObjectID = "gYf-zP-z64"; */
+"gYf-zP-z64.normalTitle" = "의류수선";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "ggd-Qt-kP8"; */
+"ggd-Qt-kP8.text" = "Label";
+
+/* Class = "UIButton"; normalTitle = "메세지로 문의하기"; ObjectID = "mTV-dI-o76"; */
+"mTV-dI-o76.normalTitle" = "메세지로 문의하기";
+
+/* Class = "UIButton"; normalTitle = "보내기"; ObjectID = "mb7-Bn-nv3"; */
+"mb7-Bn-nv3.normalTitle" = "보내기";
+
+/* Class = "UIButton"; normalTitle = "문구점"; ObjectID = "muK-uh-I5X"; */
+"muK-uh-I5X.normalTitle" = "문구점";
+
+/* Class = "UITextField"; placeholder = "제목을 입력하세요.."; ObjectID = "q2K-MN-fIy"; */
+"q2K-MN-fIy.placeholder" = "제목을 입력하세요..";
+
+/* Class = "UITableViewSection"; headerTitle = "제목"; ObjectID = "qX1-Bj-UG4"; */
+"qX1-Bj-UG4.headerTitle" = "제목";
+
+/* Class = "UITableViewSection"; headerTitle = "내용"; ObjectID = "tTA-Oa-7gf"; */
+"tTA-Oa-7gf.headerTitle" = "내용";
+
+/* Class = "UISearchBar"; placeholder = "검색"; ObjectID = "yCq-Y5-h5c"; */
+"yCq-Y5-h5c.placeholder" = "검색";
+
+/* Class = "UISearchBar"; placeholder = "검색"; ObjectID = "zH3-3a-abv"; */
+"zH3-3a-abv.placeholder" = "검색";
+
+/* Class = "UIBarButtonItem"; title = "더보기"; ObjectID = "zeV-aT-1JC"; */
+"zeV-aT-1JC.title" = "더보기";
