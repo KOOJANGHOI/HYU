@@ -98,7 +98,10 @@ exec(char *path, char **argv)
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
   switchuvm(proc);
-  freevm(oldpgdir);
+
+  /* call freevm(oldpgdir) only if proc is normal process */
+  if(!proc->isThread)
+    freevm(oldpgdir);
   return 0;
 
  bad:

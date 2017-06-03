@@ -132,15 +132,19 @@ sys_thread_exit(void)
 int
 sys_sbrk(void)
 {
-  int addr;
   int n;
 
   if(argint(0, &n) < 0)
     return -1;
-  addr = proc->sz;
   if(growproc(n) < 0)
     return -1;
-  return addr;
+  /* if proc is thread , return (proc's parent's size + PGSIZE*64 -n) */
+  if(proc->isThread)
+      return (proc->parent->sz + PGSIZE*64 -n);
+  /* if proc is master thread. but has no child ,return (proc->sz -n) */
+  else if(proc->cntchild == 0) return (proc->sz - n);
+  /* if proc is master thread. return (proc->sz + PGSIZE*64 -n) */
+  else return (proc->sz + PGSIZE*64 -n);
 }
 
 int

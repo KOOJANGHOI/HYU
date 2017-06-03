@@ -19,9 +19,9 @@ struct proc *mlfq[3][NPROC];
 /* header of each array(level 0,1,2)*/
 int head[3] = {0,0,0};
           
-int minpass = 0;
-int sumOfShare = 0;                         //sum of cpu_share
-int strideSum = 0;                          //sum of stride
+double minpass = 0;
+double sumOfShare = 0;                         //sum of cpu_share
+double strideSum = 0;                          //sum of stride
 int index = 0;
 int check = 0;                             //check = 1 if using mlfq scheduler
 
@@ -169,16 +169,45 @@ int
 growproc(int n)
 {
   uint sz;
+  if(proc->isThread) sz = proc->parent->sz;
+  else sz = proc->sz;
 
-  sz = proc->sz;
-  if(n > 0){
-    if((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0)
-      return -1;
-  } else if(n < 0){
-    if((sz = deallocuvm(proc->pgdir, sz, sz + n)) == 0)
-      return -1;
+  if(proc->isThread) {
+    if(n > 0){
+        if((sz = allocuvm(proc->pgdir, sz+PGSIZE*64, sz+PGSIZE*64 + n)) == 0)
+            return -1;
+    } else if(n < 0){
+        if((sz = deallocuvm(proc->pgdir, sz+PGSIZE*64, sz+PGSIZE*64 + n)) == 0)
+            return -1;
+    }
+    sz -= PGSIZE*64;
   }
-  proc->sz = sz;
+  else if(proc->cntchild == 0) {
+    if(n > 0){
+        if((sz = allocuvm(proc->pgdir, sz ,  sz + n)) == 0)
+            return -1;
+    } else if(n < 0){
+        if((sz = deallocuvm(proc->pgdir, sz , sz + n)) == 0)
+            return -1;
+    }
+    proc->realsz = sz;
+  }
+  else {
+    if(n > 0){
+        if((sz = allocuvm(proc->pgdir, sz+PGSIZE*64, sz+PGSIZE*64 + n)) == 0)
+            return -1;
+    } else if(n < 0){
+        if((sz = deallocuvm(proc->pgdir, sz+PGSIZE*64, sz+PGSIZE*64 + n)) == 0)
+            return -1;
+    }
+    sz -= PGSIZE*64;
+  }
+
+  if(proc->isThread)
+      proc->parent->sz = sz;
+  else
+    proc->sz = sz;
+
   switchuvm(proc);
   return 0;
 }
@@ -197,14 +226,29 @@ fork(void)
     return -1;
   }
 
-  // Copy process state from p.
-  if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
-    kfree(np->kstack);
-    np->kstack = 0;
-    np->state = UNUSED;
-    return -1;
+  if(!proc->isThread) {
+    // Copy process state from p.
+    if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
+        kfree(np->kstack);
+        np->kstack = 0;
+        np->state = UNUSED;
+        return -1;
+    }
   }
+  else {
+    /* proc is thread */
+    /* call modified copyuvm(that is copyuvm2) */
+    /* it ignore empty page which is thread's seperate stack */
+    if((np->pgdir = copyuvm2(proc->pgdir, proc->sz)) == 0){
+        kfree(np->kstack);
+        np->kstack = 0;
+        np->state = UNUSED;
+        return -1;
+    }
+  }
+
   np->sz = proc->sz;
+  np->realsz = np->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
 
@@ -240,37 +284,108 @@ exit(void)
   if(proc == initproc)
     panic("init exiting");
 
-  // Close all open files.
-  for(fd = 0; fd < NOFILE; fd++){
-    if(proc->ofile[fd]){
-      fileclose(proc->ofile[fd]);
-      proc->ofile[fd] = 0;
+  /* if proc is thread */
+  if(proc->isThread) {
+     for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+         /* close all open files of thread which parent is same as proc */
+         if(p->isThread && (p->parent == proc->parent)) {
+            for(fd = 0; fd < NOFILE; fd++){
+                if(p->ofile[fd]){
+                    fileclose(p->ofile[fd]);
+                    p->ofile[fd] = 0;
+                }
+            }
+            begin_op();
+            iput(p->cwd);
+            end_op();
+            p->cwd = 0;
+         }
+     }
+     /* close all open files of proc */
+     for(fd = 0; fd < NOFILE; fd++){
+        if(proc->parent->ofile[fd]){
+            fileclose(proc->parent->ofile[fd]);
+            proc->parent->ofile[fd] = 0;
+        }
+     } 
+     begin_op();
+     iput(proc->parent->cwd);
+     end_op();
+     proc->parent->cwd = 0;
+  } else {
+      /* if proc is master thread or normal process */
+      /* close all open files */
+    for(fd = 0; fd < NOFILE; fd++){
+        if(proc->ofile[fd]){
+            fileclose(proc->ofile[fd]);
+            proc->ofile[fd] = 0;
+        }
     }
-  }
+    begin_op();
+    iput(proc->cwd);
+    end_op();
+    proc->cwd = 0;
 
-  begin_op();
-  iput(proc->cwd);
-  end_op();
-  proc->cwd = 0;
+    for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+        /* close all open files of thread which parent is proc */
+         if(p->isThread && (p->parent == proc)) {
+            for(fd = 0; fd < NOFILE; fd++){
+                if(p->ofile[fd]){
+                    fileclose(p->ofile[fd]);
+                    p->ofile[fd] = 0;
+                }
+            }
+            begin_op();
+            iput(p->cwd);
+            end_op();
+            p->cwd = 0;
+         }
+     }
+  }
 
   acquire(&ptable.lock);
 
-  // Parent might be sleeping in wait().
-  wakeup1(proc->parent);
+  /* if proc is thread , wakeup master thread's parent */
+  if(proc->isThread)
+    wakeup1(proc->parent->parent);
+  /* else , wakeup proc's parent */
+  else
+    wakeup1(proc->parent);
 
-  // Pass abandoned children to init.
+  /* add orphan identifier and change state to ZOMBIE */
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == proc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
+      /* if proc is thread */
+      if(proc->isThread) {
+          /* other thread which parent is same as proc */
+        if(p->isThread && (p->parent == proc->parent)){
+            p->orphan = 1;
+            p->state = ZOMBIE;
+            p->parent->cntchild--;
+        }
+    }
+      /* if proc is master thread */
+    if(p->parent == proc) {
+        /* all of master thread's child thread */
+        if(p->isThread) {
+            p->orphan = 1;
+            p->state = ZOMBIE;
+            p->parent->cntchild--;
+        } else {
+            p->parent = initproc;
+            if(p->state == ZOMBIE)
+                wakeup1(initproc);
+        }
     }
   }
+  
+  /* master thread's state to ZOMBIE & delete from priority queue */
+  if(proc->isThread) {
+      proc->parent->state = ZOMBIE;
+      deleteFromQueue(proc->parent->prioritylevel,proc->parent);
+  }
 
-  // Jump into the scheduler, never to return.
+  /* thread's state to ZOMBIE & delete from priority queue */
   proc->state = ZOMBIE;
-    
-  /* delete proc from PQueue */
   deleteFromQueue(proc->prioritylevel,proc);
                 
   sched();
@@ -287,7 +402,31 @@ wait(void)
 
   acquire(&ptable.lock);
   for(;;){
-    // Scan through table looking for exited children.
+    for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+        /* if p is orphan && state ZOMBIE && thread */
+        /* clear all resources */
+        if(p->orphan && p->isThread && p->state == ZOMBIE) {
+            deallocuvm(p->pgdir , p->baseAddr , p->baseAddr -PGSIZE);
+            kfree(p->kstack);
+            p->kstack = 0;
+            p->pid = 0;
+            p->name[0] = 0;
+            p->killed = 0;
+
+            p->isThread = 0;
+            p->parent->isPageEmpty[p->tid] = 0;
+
+            p->parent = 0;
+
+            sumOfShare -= p->share;
+            p->stride = 0;
+            p->share = 0;
+            p->pvalue = 0;
+       
+            p->state = UNUSED;
+        }
+    }
+   
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != proc)
@@ -408,7 +547,7 @@ int deleteFromQueue(int plevel , struct proc *toDelete) {
     struct proc *p;
     for(; i < NPROC ; i++) {
         p = mlfq[plevel][i];
-        if(p != NULL && p->pid == toDelete->pid) {
+        if(p != NULL && p->pid == toDelete->pid && p == toDelete) {
             mlfq[plevel][i] = NULL;
             return i;
         }
@@ -431,7 +570,6 @@ void resetTicks(struct proc *p) {
 
 /* priority boost */
 void boostPriority(void) {                    
-    cprintf("[do boosting!]\n");
     int i;
     struct proc *p = ptable.proc;
     int num = 0;
@@ -517,11 +655,10 @@ scheduler(void)
                     }
                     strideSum += p->stride;
                     if(p->stride != 0) {   
-                        sumOfShare += (STRIDENUM/p->stride);
+                        sumOfShare += ((double)STRIDENUM/p->stride);
                     }
                 }
             }
-            
             /* there is no process which call cpu_share */
             if(strideSum == 0) {         
                 mlfq_Stride = 0;
@@ -534,7 +671,7 @@ scheduler(void)
                 minpass = 0;
 
             if(mlfq_PassValue < minpass) {
-                mlfq_Stride = STRIDENUM/(100-sumOfShare);
+                mlfq_Stride = (double)STRIDENUM/(100-sumOfShare);
                /* mlfq array has no process(all process has cpu_share system call) */
                if(check == 0) {                   
                     checkingWhetherStrideOrNot = 1;
@@ -678,10 +815,10 @@ int
 set_cpu_share(int share)
 {   
     int i = 0;
-    int totalShare = 0;
-
+    double totalShare = 0;
     mlfq_PassValue = 0;
-     
+
+    proc->fixedshare = share;
    
     
     for(i = 0 ; i < NPROC ; i++) {
@@ -715,6 +852,8 @@ thread_create(thread_t *thread , void *(*start_routine)(void *) , void *arg)
   struct proc *np;
   char *sp;                 /* stack pointer */
   uint sz , ba;
+  struct proc *p;
+  p = 0;
 
   /* Allocate process(same as fork()) */
   if((np = allocproc()) == 0){
@@ -724,6 +863,7 @@ thread_create(thread_t *thread , void *(*start_routine)(void *) , void *arg)
   np->sz = proc->sz;
   np->parent = proc;
   *np->tf = *proc->tf;
+  np->pid = proc->pid;
   
   /* refers to parent's pgdir */
   np->pgdir = proc->pgdir;
@@ -742,7 +882,7 @@ thread_create(thread_t *thread , void *(*start_routine)(void *) , void *arg)
   /* base address of child's stack */
   /* offset is PGSIZE */
   /* and call allocuvm() */
-  ba = proc->sz + (np->tid)*PGSIZE;
+  ba = proc->realsz + (np->tid)*PGSIZE;
   if((sz = allocuvm(np->pgdir , ba , ba + PGSIZE)) == 0)
       return -1;
 
@@ -767,22 +907,36 @@ thread_create(thread_t *thread , void *(*start_routine)(void *) , void *arg)
   np->cwd = idup(proc->cwd);
  
   np->isThread = 1;                         /* because np is LWP */
+  proc->cntchild++;
 
+  acquire(&ptable.lock);
+  if(proc->isStride) {
+      for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+          if(p->pid == proc->pid && p->isThread) {
+            p->share = proc->fixedshare/(double)(proc->cntchild+1);
+            proc->share = p->share;
+
+            p->isStride = 1;
+            p->pvalue = 0;
+            p->stride = STRIDENUM/p->share;
+          }
+      }
+  }
+  release(&ptable.lock);
+  
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
-
   
   /*insert child process into PQueue when fork() called */
   insertIntoPQueue(np->prioritylevel , np);
-         
   return 0;
 }
 
 int
 thread_join(thread_t thread , void** retval)
 {
-   
+ // cprintf("!111\n"); 
   struct proc *p;
   int havekids;
 
@@ -810,7 +964,6 @@ thread_join(thread_t thread , void** retval)
         proc->isPageEmpty[thread] = 0;
 
         /* same as wait() system call */
-        sumOfShare -= p->share;
         p->stride = 0;
         p->share = 0;
         p->pvalue = 0;
@@ -818,6 +971,7 @@ thread_join(thread_t thread , void** retval)
 
         p->state = UNUSED;
         release(&ptable.lock);
+   //     cprintf("join happend\n");
         return 0;
       }
     }
@@ -859,12 +1013,18 @@ thread_exit(void* retval)
 
   acquire(&ptable.lock);
 
+  if(proc->isStride) {
+      proc->parent->share += proc->share;
+      sumOfShare -= proc->share;
+      proc->share = 0;
+  }
+ // cprintf("exit tid : %d, cpu : %d\n",proc->tid,(int)proc->share);
+
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
   
   /* save return value of child LWP */
   proc->parent->retValArr[proc->tid] = retval;
-
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
     
