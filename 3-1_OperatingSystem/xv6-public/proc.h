@@ -83,9 +83,9 @@ struct proc {
   int isPageEmpty[64];         // If non-zero , stack of child thread is not empty
   void *retValArr[64];         // address of return value of child thread
   uint baseAddr;               // base address of stack
-  int orphan;
-  int realsz;
-  int cntchild;
+  int orphan;                  // If non-zero , have no parent
+  int realsz;                  // Unchanged stack size
+  int cntchild;                // If non-zero , is number of child thread
 
 };
 

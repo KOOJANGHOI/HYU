@@ -236,6 +236,9 @@ fork(void)
     }
   }
   else {
+    /* proc is thread */
+    /* call modified copyuvm(that is copyuvm2) */
+    /* it ignore empty page which is thread's seperate stack */
     if((np->pgdir = copyuvm2(proc->pgdir, proc->sz)) == 0){
         kfree(np->kstack);
         np->kstack = 0;
@@ -281,10 +284,11 @@ exit(void)
   if(proc == initproc)
     panic("init exiting");
 
+  /* if proc is thread */
   if(proc->isThread) {
      for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+         /* close all open files of thread which parent is same as proc */
          if(p->isThread && (p->parent == proc->parent)) {
-             // Close all open files.
             for(fd = 0; fd < NOFILE; fd++){
                 if(p->ofile[fd]){
                     fileclose(p->ofile[fd]);
@@ -297,7 +301,7 @@ exit(void)
             p->cwd = 0;
          }
      }
-     // Close all open files.
+     /* close all open files of proc */
      for(fd = 0; fd < NOFILE; fd++){
         if(proc->parent->ofile[fd]){
             fileclose(proc->parent->ofile[fd]);
@@ -309,7 +313,8 @@ exit(void)
      end_op();
      proc->parent->cwd = 0;
   } else {
-    // Close all open files.
+      /* if proc is master thread or normal process */
+      /* close all open files */
     for(fd = 0; fd < NOFILE; fd++){
         if(proc->ofile[fd]){
             fileclose(proc->ofile[fd]);
@@ -322,8 +327,8 @@ exit(void)
     proc->cwd = 0;
 
     for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+        /* close all open files of thread which parent is proc */
          if(p->isThread && (p->parent == proc)) {
-             // Close all open files.
             for(fd = 0; fd < NOFILE; fd++){
                 if(p->ofile[fd]){
                     fileclose(p->ofile[fd]);
@@ -340,21 +345,27 @@ exit(void)
 
   acquire(&ptable.lock);
 
+  /* if proc is thread , wakeup master thread's parent */
   if(proc->isThread)
     wakeup1(proc->parent->parent);
+  /* else , wakeup proc's parent */
   else
     wakeup1(proc->parent);
 
-  // Pass abandoned children to init.
+  /* add orphan identifier and change state to ZOMBIE */
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(proc->isThread) {
+      /* if proc is thread */
+      if(proc->isThread) {
+          /* other thread which parent is same as proc */
         if(p->isThread && (p->parent == proc->parent)){
             p->orphan = 1;
             p->state = ZOMBIE;
             p->parent->cntchild--;
         }
     }
+      /* if proc is master thread */
     if(p->parent == proc) {
+        /* all of master thread's child thread */
         if(p->isThread) {
             p->orphan = 1;
             p->state = ZOMBIE;
@@ -367,14 +378,14 @@ exit(void)
     }
   }
   
+  /* master thread's state to ZOMBIE & delete from priority queue */
   if(proc->isThread) {
       proc->parent->state = ZOMBIE;
       deleteFromQueue(proc->parent->prioritylevel,proc->parent);
   }
-  // Jump into the scheduler, never to return.
+
+  /* thread's state to ZOMBIE & delete from priority queue */
   proc->state = ZOMBIE;
-    
-  /* delete proc from PQueue */
   deleteFromQueue(proc->prioritylevel,proc);
                 
   sched();
@@ -392,6 +403,8 @@ wait(void)
   acquire(&ptable.lock);
   for(;;){
     for(p = ptable.proc ; p < &ptable.proc[NPROC] ; p++) {
+        /* if p is orphan && state ZOMBIE && thread */
+        /* clear all resources */
         if(p->orphan && p->isThread && p->state == ZOMBIE) {
             deallocuvm(p->pgdir , p->baseAddr , p->baseAddr -PGSIZE);
             kfree(p->kstack);
