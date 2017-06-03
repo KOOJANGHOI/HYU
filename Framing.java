@@ -1,32 +1,59 @@
 package proj3_1;
 
-
 public class Framing {
-	
-	public byte[] outdata;
-	public static CRC c;
-	
-	public Framing(byte seq, byte ack, byte flag, byte[] data) {
-		c = new CRC();
-		outdata = new byte[136];
-		// seq , ack , flag , data.length 저장
-		outdata[0] = seq;
-		outdata[1] = ack;
-		outdata[2] = flag;
-		outdata[3] = (byte)data.length;
-		// CRC를 outdata에 복사
-		System.arraycopy(c.CRCmake(data), 0, outdata, 4, 4);
-		// dara를 outdata에 복사
-		System.arraycopy(data, 0, outdata, 8, data.length);
+
+	public static byte[] outdata = new byte[518];
+	public CRC c = new CRC();
+
+	// I-Type
+	public Framing(byte[] DST_ADDR, byte[] SRC_ADDR, byte[] LEN_PDU, byte DSAP, byte SSAP, byte[] CONTROL,
+			byte[] DATA) {
+		
+		System.arraycopy(DST_ADDR, 0, outdata, 0, 6);
+		System.arraycopy(SRC_ADDR, 0, outdata, 6, 6);
+		System.arraycopy(LEN_PDU, 0, outdata, 12, 2);
+		outdata[14] = DSAP;
+		outdata[15] = SSAP;
+		System.arraycopy(CONTROL, 0, outdata, 16, 2);
+		System.arraycopy(DATA, 0, outdata, 18, DATA.length);
+		byte[] cache = new byte[18+DATA.length];
+		System.arraycopy(outdata, 0, cache, 0, 18+DATA.length);
+		byte[] crc = c.CRCmake(cache);
+		System.arraycopy(crc, 0, outdata, 18 + DATA.length, 4);
 	}
-	public Framing(byte seq, byte ack, byte flag){
-		outdata = new byte[4];
-		outdata[0] = seq;
-		outdata[1] = ack;
-		outdata[2] = flag;
-		outdata[3] = 0;
-	}
-	public byte[] framing(){
+
+	// S-Type
+	public Framing(byte[] DST_ADDR, byte[] SRC_ADDR, byte[] LEN_PDU, byte DSAP, byte SSAP, byte[] CONTROL) {
+		
+		System.arraycopy(DST_ADDR, 0, outdata, 0, 6);
+		System.arraycopy(SRC_ADDR, 0, outdata, 6, 6);
+		System.arraycopy(LEN_PDU, 0, outdata, 12, 2);
+		outdata[14] = DSAP;
+		outdata[15] = SSAP;
+		System.arraycopy(CONTROL, 0, outdata, 16, 2);
+		byte[] cache = new byte[18];
+		System.arraycopy(outdata, 0, cache, 0, 18);
+		byte[] crc = c.CRCmake(cache);
+		System.arraycopy(crc, 0, outdata, 18 , 4);
+		}
+	
+	// U-Type
+		public Framing(byte[] DST_ADDR, byte[] SRC_ADDR, byte[] LEN_PDU, byte DSAP, byte SSAP, byte CONTROL) {
+			
+			System.arraycopy(DST_ADDR, 0, outdata, 0, 6);
+			System.arraycopy(SRC_ADDR, 0, outdata, 6, 6);
+			System.arraycopy(LEN_PDU, 0, outdata, 12, 2);
+			outdata[14] = DSAP;
+			outdata[15] = SSAP;
+			outdata[16] = CONTROL;
+			byte[] cache = new byte[17];
+			System.arraycopy(outdata, 0, cache, 0, 17);
+			byte[] crc = c.CRCmake(cache);
+			System.arraycopy(crc, 0, outdata, 17 , 4);
+			}
+
+	public byte[] framing() {
 		return outdata;
 	}
+
 }

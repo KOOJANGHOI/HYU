@@ -3,40 +3,127 @@ package proj3_1;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+
+import javax.xml.bind.DatatypeConverter;
 
 class RcvThread extends Thread {
-	
-	DatagramSocket socket;		// 소켓
-	DatagramPacket rcv_packet;	// 받은 패킷
-	Signaling signal;			// Signaling 변수 signal
-	boolean temp = true;		// RcvThread를 제어할 boolean 변수
 
-	// FLAGs
-	public static final byte FRAME_FLAG_NOARQ_DATA = 1;
-	public static final byte FRAME_FLAG_NOARQ_ACK = 2;
-	public static final byte FRAME_FLAG_STOPNWAIT_DATA = 11;
-	public static final byte FRAME_FLAG_STOPNWAIT_ACK = 12;
-	public static final byte FRAME_FLAG_NAK = 99;
+	public DatagramSocket socket;
+	public DatagramPacket rcv_packet;
+	Signaling signal;
+	boolean temp = true;
+	public int cnt = 0;
 
-	// RcvThread 생성자
+	public static final byte FRAME_TYPE_I = 0;
+
+	public static final byte FRAME_TYPE_S = 10;
+	public static final byte CONTROL_TYPE_RR = 11;
+	public static final byte CONTROL_TYPE_RNR = 12;
+	public static final byte CONTROL_TYPE_NAK = 13;
+
+	public static final byte FRAME_TYPE_U = 20;
+	public static final byte CONTROL_TYPE_UI = 21;
+	public static final byte CONTROL_TYPE_SABME = 22;
+	public static final byte CONTROL_TYPE_DISC = 23;
+	public static final byte CONTROL_TYPE_FRMR = 24;
+	public static final byte CONTROL_TYPE_UA = 25;
+	public static final byte CONTROL_TYPE_XID = 26;
+
+	public static byte FRAME_TYPE_FLAG = 98;
+	public static byte CONTROL_TYPE_FLAG = 99;
+
+	public static byte dsap = 0;
+	public static byte ssap = 0;
+
+	public static byte[] DST_ADDR = new byte[6];
+	public static byte[] SRC_ADDR = new byte[6];
+	public static byte[] SRC_ADDR_STORE = new byte[6];
+	public static byte[] LEN_PDU = new byte[2];;
+	public static byte DSAP = 0;
+	public static byte SSAP = 0;
+	public static byte[] CONTROL = new byte[2];
+	public static byte[] DATA = new byte[496];
+	public static byte[] CRC = new byte[4];
+
+	public static byte NS = 0, NR = 0;
+	public static byte seq = 0, ack = 0;
+	public static byte[] rcv_msg = new byte[518];
+
+	public static int totallength = 0;
+	public static int datalength = 0;
+
+	public static byte[] getLocalMacAddr() {
+		// 로컬 IP취득
+		InetAddress ip = null;
+		byte[] mac = new byte[6];
+		try {
+			ip = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		// 네트워크 인터페이스 취득
+		NetworkInterface netif = null;
+		try {
+			netif = NetworkInterface.getByInetAddress(ip);
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		// 네트워크 인터페이스가 NULL이 아니면
+		if (netif != null) {
+			// 맥어드레스 취득
+			try {
+				mac = netif.getHardwareAddress();
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return mac;
+	}
+
+	public String byteArrayToHex(byte[] a) {
+		StringBuilder sb = new StringBuilder();
+		for (final byte b : a)
+			sb.append(String.format("%02xx", b & 0xff));
+		return sb.toString();
+	}
+
+	public static byte[] longToBytes(long x) {
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(x);
+		return buffer.array();
+	}
+
+	public static long bytesToLong(byte[] bytes) {
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+		byte[] ped = { 0x00, 0x00, 0x00, 0x00 };
+		buffer.put(ped);
+		buffer.put(bytes);
+		buffer.flip();
+		return buffer.getLong();
+	}
+
 	RcvThread(DatagramSocket socket, Signaling signal) {
 		this.socket = socket;
 		this.signal = signal;
 	}
 
-	// RcvThread 동작
 	public void run() {
-		
-		byte buff[] = new byte[512];
-		rcv_packet = new DatagramPacket(buff, buff.length);
 
-		byte seq, ack, flag, len;	// sequence , ack , flag , length
-		byte[] crc = new byte[4];	// CRC
-		byte[] rcv_msg = new byte[136];	// 받은 메시지
-		byte[] msg = new byte[128];	// Error Detection Message
+		byte buff[] = new byte[518];
+		rcv_packet = new DatagramPacket(buff, buff.length);
 		
+		SRC_ADDR_STORE = getLocalMacAddr();
 		while (temp) {
-			// 패킷을 받고 , IP,PORT를 추출
 			try {
 				socket.receive(rcv_packet);
 				UDPChatting.remoteport = rcv_packet.getPort();
@@ -44,59 +131,47 @@ class RcvThread extends Thread {
 			} catch (IOException e) {
 				System.out.println("Thread exception " + e);
 			}
-			
-			// 패킷에서 메시지 추출
+
 			rcv_msg = rcv_packet.getData();
 			
-			// sequence , ack , flag , length 추출
-			seq = rcv_msg[0];
-			ack = rcv_msg[1];
-			flag = rcv_msg[2];
-			len = rcv_msg[3];
+			SRC_ADDR = SRC_ADDR_STORE;
+			System.arraycopy(rcv_msg, 6, DST_ADDR, 0, 6);
+			System.arraycopy(rcv_msg, 12, LEN_PDU, 0, 2);
+			DSAP = rcv_msg[14];
+			SSAP = rcv_msg[15];
+			CONTROL[0] = rcv_msg[16];
 			
-			// 송신에 대한 ACK가 왔을때
-			if (flag == FRAME_FLAG_STOPNWAIT_ACK) {
-				// ACK가 sequence에 맞을때
-				if (ack == UDPChatting.seq) {
-					System.out.println("\nSTATE : Receiving ACK...");
-					System.out.println("ACK(no." + ack + ") Received!!!");
-					UDPChatting.seq = (byte) ((UDPChatting.seq+ (byte)1)%2); 		// seq증가
-					signal.ACKnotifying();	// ACK notify
-					printField(rcv_msg);
-				}// ACK가 sequence에 맞지 않을때 
-				else {
-					System.out.println("\nSTATE : Receiving ACK...");
-					System.out.println("ACK and seq are not equal!!!");
-					printField(rcv_msg);
-				}
-			}
-			// data를 수신할때
-			else if (flag == FRAME_FLAG_STOPNWAIT_DATA) {
-				System.arraycopy(rcv_msg, 4, crc, 0, 4);
-				System.arraycopy(rcv_msg, 8, msg, 0, len);
-				// 수신된 data에 Error가 없을때
-				if (corrupted(crc, msg)) {
+
+			if ((byte) (CONTROL[0] & 0x80) == (byte) 0x00) {
+				FRAME_TYPE_FLAG = 0;
+				CONTROL[1] = rcv_msg[17];
+				totallength = LEN_PDU[0] * 256 + LEN_PDU[1] * 1;
+				
+				seq = (byte) (CONTROL[0] & 0x7F);
+				ack = (byte) (CONTROL[1] & 0x7F);
+				datalength = totallength - 22;
+				System.arraycopy(rcv_msg, 18, DATA, 0, datalength);
+				System.arraycopy(rcv_msg, totallength - 4, CRC, 0, 4);				
+				
+				byte[] cache1 = new byte[totallength - 4];
+				System.arraycopy(rcv_msg, 0, cache1, 0, totallength - 4);
+
+				if (corrupted(CRC, cache1)) {
+					System.out.println();
+					System.out.println("\nSTATE : Receiving Data...");
+					System.out.println("CRC Correct");
+					printCRC(CRC);
 					// sequence가 맞지 않을때
-					if (seq != UDPChatting.seq) {
-						sendACK(); 		// ACK 전송
-						System.out.println();
-						System.out.println("\nSTATE : Receiving Data...");
-						System.out.println("CRC Correct");
-						System.out.println("ACK is not equal!!!");
-						UDPChatting.ack = seq;
-						printField(rcv_msg);
+					if (NR != seq) {
+						System.out.println("\nACK is not equal!!!");
+						sendACK(); // ACK 전송
 					}
 					// sequence가 맞을때
 					else {
-						String result = new String(msg).substring(0, msg.length);
-						System.out.println();
-						System.out.println("\nSTATE : Receiving Data...");
-						System.out.println("CRC Correct");
-						System.out.println("Received Data : " + result);
-						UDPChatting.seq = (byte) ((UDPChatting.seq+ (byte)1)%2);	// seq증가
-						UDPChatting.ack = seq;
-						sendACK();	// ACK 전송
-						printField(rcv_msg);
+						String result = new String(DATA).substring(0, DATA.length);
+						System.out.println("\nReceived Data : " + result);
+						NR = (byte) (seq+1);
+						sendACK(); // ACK 전송
 					}
 				}
 				// 수신된 data에 Error가 있을때 NAK를 송신
@@ -106,76 +181,291 @@ class RcvThread extends Thread {
 					printField(rcv_msg);
 				}
 
-			}
-			// NAK가 왔을때
-			else if (flag == FRAME_FLAG_NAK) {
-				System.out.println("Data corrupted!");
-				printField(rcv_msg);
-			}
-			// 예외 상황
-			else
-				System.out.println("?");
-		}
+			} else if ((byte) (CONTROL[0] & 0xC0) == (byte) 0x80) {
+				FRAME_TYPE_FLAG = 10;
+				
+				CONTROL[1] = rcv_msg[17];
+				totallength = LEN_PDU[0] * 256 + LEN_PDU[1] * 1;
+				
+				ack = (byte) (CONTROL[1] & 0x7F);
 
-		System.out.println("RcvThread End!!");
+				byte[] cache2 = new byte[18];
+				System.arraycopy(rcv_msg, 0, cache2, 0, 18);
+				System.arraycopy(rcv_msg, 18, CRC, 0, 4);
+
+				switch ((byte) (CONTROL[0] & 0x30)) {
+				case ((byte) 0x00):
+					CONTROL_TYPE_FLAG = 11;
+					break;
+				case ((byte) 0x20):
+					CONTROL_TYPE_FLAG = 12;
+					break;
+				case ((byte) 0x10):
+					CONTROL_TYPE_FLAG = 13;
+					break;
+				default:
+					break;
+				}
+
+				// ACK
+				if (CONTROL_TYPE_FLAG == 11) {
+					if (corrupted(CRC, cache2)) {
+						System.out.println();
+						System.out.println("\nSTATE : Receiving ACK...");
+						System.out.println("CRC Correct");
+						printCRC(CRC);
+						// ACK가 sequence에 맞을때
+						if (ack == UDPChatting.NS) {
+							System.out.println("\nACK(no." + ack + ") Received!!!");
+							seq = UDPChatting.NS;
+							signal.ACKnotifying();
+							printField(rcv_msg);
+						} // ACK가 sequence에 맞지 않을때
+						else {
+							System.out.println("\nACK and seq are not equal!!!");
+							printField(rcv_msg);
+						}
+					} else {
+						System.out.println("CRC is not correct!!!");
+						sendNAK();
+						printField(rcv_msg);
+					}
+				}
+				// NAK
+				else if (CONTROL_TYPE_FLAG == 13) {
+					if (corrupted(CRC, cache2)) {
+						System.out.println("Data corrupted!");
+						printField(rcv_msg);
+					} else {
+						System.out.println("Error Detected!!!");
+						sendNAK();
+						printField(rcv_msg);
+					}
+				}
+				// RNR
+				else if (CONTROL_TYPE_FLAG == 12) {
+
+				}
+
+			} else {
+				FRAME_TYPE_FLAG = 20;
+				totallength = LEN_PDU[0] * 256 + LEN_PDU[1] * 1;
+				
+				byte[] cache3 = new byte[17];
+				System.arraycopy(rcv_msg, 0, cache3, 0, 17);
+				System.arraycopy(rcv_msg, 17, CRC, 0, 4);
+				
+				switch ((byte) (CONTROL[0] & 0x37)) {
+				
+				case ((byte) 0x30):
+					System.out.println("CONTROL_TYPE: UI");
+					CONTROL_TYPE_FLAG = 21;
+					break;
+				case ((byte) 0x36):
+					CONTROL_TYPE_FLAG = 22;
+					break;
+				case ((byte) 0x02):
+					CONTROL_TYPE_FLAG = 23;
+					break;
+				case ((byte) 0x21):
+					System.out.println("CONTROL_TYPE: FRMR");
+					CONTROL_TYPE_FLAG = 24;
+					break;
+				case ((byte) 0x06):
+					CONTROL_TYPE_FLAG = 25;
+					break;
+				case ((byte) 0x35):
+					System.out.println("CONTROL_TYPE: XID");
+					CONTROL_TYPE_FLAG = 26;
+					break;
+				default:
+					System.out.println("???");
+					break;
+				}
+
+				if (CONTROL_TYPE_FLAG == 21) {
+
+				} else if (CONTROL_TYPE_FLAG == 22) {
+					
+					for(int i =0 ; i < 21 ; i++){
+					System.out.printf("[%02X]" , rcv_msg[i]);
+					}
+					System.out.println();
+					
+					if(corrupted(CRC,cache3)) {
+						System.out.println("Received SABME");
+						signal.SABMEnotifying();
+						sendUA();
+					}else {
+						System.out.println("Received SABME. BUT ERROR DETECTED!!!");
+					}
+				} else if (CONTROL_TYPE_FLAG == 23) {
+					if(corrupted(CRC,cache3)) {
+						System.out.println("\nReceived DISC");
+						signal.DISCnotifying();
+						sendUA();
+						System.out.println("Port Closed!! Communication End!!!");
+						graceout();
+					}else {
+						System.out.println("Received SABME. BUT ERROR DETECTED!!!");
+					}
+
+				} else if (CONTROL_TYPE_FLAG == 24) {
+
+				} else if (CONTROL_TYPE_FLAG == 25) {
+					if(cnt == 0) {
+						System.out.println("Received UA(From SABME)!!!");
+						signal.SABMEUAnotifying();
+						cnt++;
+					}else {
+						System.out.println("Received UA(From DISC)!!!");
+						signal.DISCUAnotifying();
+						System.out.println("Port Closed!! Communication End!!!");
+						UDPChatting.graceout();
+					}
+				} else if (CONTROL_TYPE_FLAG == 26) {
+
+				}
+
+			}
+		}
 	}
 
 	// Error Detection
-	public boolean corrupted(byte[] crc, byte[] rsvmsg) {
-		byte[] tmp = crc;
-		byte[] buffer = rsvmsg;
-		byte[] check = new CRC().CRCmake(buffer);
-		return (new CRC().isequalCRC(tmp, check));
+	public boolean corrupted(byte[] crc, byte[] msg) {
+
+		CRC c = new CRC();
+		byte[] sibal = new byte[msg.length];
+		System.arraycopy(msg, 0, sibal, 0, msg.length);
+
+		byte[] check2 = new byte[4];
+		check2 = c.CRCmake(sibal);
+
+		return (new CRC().isequalCRC(crc, check2));
 	}
 
 	// monitoring
 	public void printField(byte[] frame) {
-		byte tmp = frame[2];
-		byte[] buffer = new byte[4];
-		
-		if (tmp == (byte) FRAME_FLAG_NAK || tmp == (byte) FRAME_FLAG_NOARQ_ACK
-				|| tmp == (byte) FRAME_FLAG_STOPNWAIT_ACK) {
-			System.out.println("Seq : " + frame[0] + " ACK : " + frame[1] + " Flag : " + frame[2]);
-		} else {
-			System.arraycopy(frame, 4, buffer, 0, 4);
-			System.out.println("Seq : " + frame[0] + " ACK : " + frame[1] + " Flag : " + frame[2] + "\n" + "Length : "
-					+ frame[3] + " CRC : " + buffer);
+		switch (FRAME_TYPE_FLAG) {
+		case 0:
+			System.out.println("FrameType(I). N(S):" + NS + " N(R):" + NR);
+			break;
+		case 10:
+			if (CONTROL_TYPE_FLAG == 11) {
+				System.out.println("FrameType(S)(ACK). N(S):" + NS + " N(R):" + ack);
+				break;
+			} else if (CONTROL_TYPE_FLAG == 12) {
+				System.out.println("FrameType(S)(NAK) , N(S): " + NS + " N(R): " + NR);
+				break;
+			} else if (CONTROL_TYPE_FLAG == 13) {
+				System.out.println("FrameType(S)(RNR) , N(S): " + NS + " N(R): " + NR);
+				break;
+			}
+		case 20:
+			if (CONTROL_TYPE_FLAG == 21) {
+				System.out.println("FrameType(U)(UI)");
+				break;
+			} else if (CONTROL_TYPE_FLAG == 22) {
+				System.out.println("FrameType(U)(SABME)");
+				break;
+			} else if (CONTROL_TYPE_FLAG == 23) {
+				System.out.println("FrameType(U)(DISC)");
+				break;
+			} else if (CONTROL_TYPE_FLAG == 24) {
+				System.out.println("FrameType(U)(FRMR)");
+				break;
+			} else if (CONTROL_TYPE_FLAG == 25) {
+				break;
+			} else if (CONTROL_TYPE_FLAG == 26) {
+				System.out.println("FrameType(U)(XID)");
+				break;
+			}
 		}
-		System.out.println();
+	}
+
+	public void printCRC(byte[] CRC) {
+		System.out.print("CRC:");
+		System.out.printf("[%02X]", CRC[0]);
+		System.out.printf("[%02X]", CRC[1]);
+		System.out.printf("[%02X]", CRC[2]);
+		System.out.printf("[%02X]", CRC[3]);
 	}
 
 	// ACK 전송
 	public void sendACK() {
-		/* Timeout Test
-		try {
-			Thread.sleep(4000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		*/
 		System.out.println("STATE : Sending ACK");
-		byte[] ACK = new byte[4];
-		ACK = new Framing(UDPChatting.seq, UDPChatting.ack, FRAME_FLAG_STOPNWAIT_ACK).framing();
-		DatagramPacket ack_packet = new DatagramPacket(ACK, ACK.length, UDPChatting.remoteaddr,
-				UDPChatting.remoteport);
+		CRC d = new CRC();
+		byte[] lenpdu = new byte[2];
+		lenpdu[0] = (byte) 0x00;
+		lenpdu[1] = (byte) 0x16;
+		byte[] ACK = new byte[22];
+		byte[] ack = new byte[2];
+		ack[0] = (byte) 0x80;
+		ack[1] = (byte) ((byte) 0x7F & NR);
+
+		ACK = new Framing(DST_ADDR, SRC_ADDR, lenpdu, dsap, ssap, ack).framing();
+
+		byte[] crctest2 = new byte[4];
+		byte[] temp = new byte[18];
+		System.arraycopy(ACK, 0, temp, 0, 18);
+		crctest2 = d.CRCmake(temp);
+
+		DatagramPacket ack_packet = new DatagramPacket(ACK, ACK.length, UDPChatting.remoteaddr, UDPChatting.remoteport);
 		try {
 			socket.send(ack_packet);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("FrameType(S)(ACK). N(S):" + NS + " N(R):" + ack[1]);
+		printCRC(crctest2);
+		System.out.println();
 	}
 
 	// NAK 전송
 	public void sendNAK() {
 		System.out.println("STATE : Sending NAK");
-		byte[] NAK = new byte[4];
-		NAK = new Framing(UDPChatting.seq, UDPChatting.ack, FRAME_FLAG_NAK).framing();
-		DatagramPacket nak_packet = new DatagramPacket(NAK, NAK.length, UDPChatting.remoteaddr,
-				UDPChatting.remoteport);
+		byte[] lenpdu = new byte[2];
+		lenpdu[0] = (byte) 0x00;
+		lenpdu[1] = (byte) 0x16;
+		byte[] NAK = new byte[22];
+		byte[] nak = new byte[2];
+		nak[0] = (byte) 0x90;
+		nak[1] = (byte) ((byte) 0x7F & NR);
+
+		NAK = new Framing(DST_ADDR, SRC_ADDR, lenpdu, dsap, ssap, nak).framing();
+		DatagramPacket nak_packet = new DatagramPacket(NAK, NAK.length, UDPChatting.remoteaddr, UDPChatting.remoteport);
 		try {
 			socket.send(nak_packet);
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// UA 전송
+	public void sendUA() {
+		System.out.println("STATE : Sending UA");
+		CRC d = new CRC();
+		byte[] lenpdu = new byte[2];
+		lenpdu[0] = (byte) 0x00;
+		lenpdu[1] = (byte) 0x16;
+		byte[] UA = new byte[22];
+		byte[] ua = new byte[2];
+		ua[0] = (byte) 0xC6;
+		ua[1] = (byte) 0;
+
+
+		UA = new Framing(DST_ADDR, SRC_ADDR, lenpdu, dsap, ssap, ua).framing();
+		
+		byte[] crctest2 = new byte[4];
+		byte[] temp = new byte[18];
+		System.arraycopy(UA, 0, temp, 0, 18);
+		crctest2 = d.CRCmake(temp);
+
+		DatagramPacket ua_packet = new DatagramPacket(UA, UA.length, UDPChatting.remoteaddr, UDPChatting.remoteport);
+		try {
+			socket.send(ua_packet);
+		} catch (IOException e) {
+			System.out.println();
 			e.printStackTrace();
 		}
 	}
