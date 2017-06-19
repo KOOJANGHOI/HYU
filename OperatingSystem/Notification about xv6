@@ -1,0 +1,16 @@
+sudo gem install vim
+
+IN
+vi ~/.vimrc
+~~~
+
+sudo apt-get install libx32gcc-4.8-dev
+sudo apt-get install libc6-dev-i386
+sudo apt-get install gcc-multilib
+
+sudo apt install qemu-system-x86
+
+IN 
+vi ~/.bashrc
+# xv6
+alias xv6='qemu-system-i386 -nographic -serial mon:stdio -hdb fs.img xv6.img -smp 1 -m 512'
