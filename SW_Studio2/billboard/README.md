@@ -131,16 +131,14 @@
 ----
 
 * Timeseries Chart example
-  + ![example](/uploads/b2f018a0f88778f644605db438208ed9/example.png)billboard/image/example.png)
+  + ![example](./image/example.png)
 
 * 예제 : 역대 연령별 투표율
-  + ![mychart](/uploads/7449a25ab7cace3e62799bc950363a96/mychart.png)
+  + ![mychart](./image/mychart.png)
 
-* 실행법:  [index2.html] 실행
-[index2.html]:https://hconnect.hanyang.ac.kr/SW_studio2_2017/2013011800/blob/master/billboard/code/demo/index2.html
+* 실행법
   + /billaoard/code/tmp/demo/index2.html 실행
 
-* 코드: [script3.js]
-[script3.js]:https://hconnect.hanyang.ac.kr/SW_studio2_2017/2013011800/blob/master/billboard/code/demo/script3.js
+* 코드: 
   + /billboard/code/tmp/demo/script3.js
 
