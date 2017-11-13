@@ -1,0 +1,78 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta name="description" content="Examples of billboard.js. billboard.js is a re-usable easy interface JavaScript chart library, based on D3 v4+.">
+    <meta name="author" content="NAVER Corp.">
+    <title>역대 연령별 투표</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fallback/1.1.8/fallback.min.js"></script>
+
+    <!-- jQuery -->
+    <script src="//code.jquery.com/jquery-1.12.4.min.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="./simple-sidebar.css" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/styles/default.min.css" />
+    <link rel="stylesheet" type="text/css" href="./tomorrow.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.11.0/languages/javascript.min.js"></script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/d3/4.9.0/d3.js"></script>
+    <script>
+        !function() {
+          var localPath = "../dist/";
+          var remotePath = "../../gh-pages/release/latest/dist/";
+
+          fallback.load({
+            billboard_js: [
+              localPath + "billboard.js",
+              remotePath + "billboard.js"
+            ],
+            billboard_css: [
+              localPath + "billboard.css",
+              remotePath + "billboard.css"
+            ]
+          });
+        }();
+    </script>
+    
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <link rel="stylesheet" href="billboard.css">
+    <script src="billboard.js"></script>
+    <link rel="stylesheet" href="billboard.css">
+    <script src="billboard.pkgd.js"></script>
+    
+  </head>
+
+  <body bgcolor=white>
+    
+    <table border="0" cellpadding="20">
+      <tr>
+        <td>
+          <!--img src="images/springsource.png"-->
+        </td>
+        <td>
+          <h1>역대 연령별 투표율</h1>
+        </td>
+      </tr>
+    </table>
+
+  <div id="T_Chart"></div>
+  </body>
+
+  <script src="script3.js"></script>
+</html>
+
+
+
+
