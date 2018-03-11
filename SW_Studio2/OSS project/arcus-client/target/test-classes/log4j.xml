@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration PUBLIC "" "log4j.dtd">
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss}[%-5p] (%F:%L) %m%n" />
+		</layout>
+	</appender>
+
+	<!-- collection piped exist -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionPipedExistOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- set attributes -->
+	<logger name="net.spy.memcached.protocol.ascii.SetAttrOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- collection insert -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionStoreOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- collection get -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionGetOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- collection upsert -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionUpsertOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- collection update -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionUpdateOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- collection count -->
+	<logger name="net.spy.memcached.protocol.ascii.CollectionCountOperationImpl" additivity="false">
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</logger>
+
+	<!-- define root -->
+	<root>
+		<level value="DEBUG" />
+		<appender-ref ref="console" />
+	</root>
+</log4j:configuration>
