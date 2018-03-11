@@ -57,7 +57,7 @@
    - RDBMS+Arcus : 7434ms
    - RDBMS only : 4ms
  
-![Pantheon_image](image/2.png)
+![image2](image/2.png)
 
 - 분석
   - 결과는 아커스의 참패였다.
@@ -117,7 +117,7 @@
 
  - 하지만 이렇게 해면 deploy가 되지 않는다
 
-![image](/uploads/60effa7b940f17523f4dcfd909fe5d46/image.png)
+![image3](image/2.png)
 
  - 아커스 파이썬 패키지 문제이다.
  - 이를 해결하기 위해 Fabric을 최신 버전으로 바꿔야 한다.
