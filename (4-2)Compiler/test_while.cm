@@ -1,0 +1,16 @@
+int call(int u , int v) {
+	int t;
+	t=5;
+	while(t) {
+		u=u+v;
+		t=t-1;
+	}
+	return u;
+}
+
+
+void main(void) {
+	int x; int y;
+	x=input(); y=input();
+	output(call(x,y));
+}

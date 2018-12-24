@@ -1,0 +1,16 @@
+int call(int u , int v , int arr[]) {
+	arr[0]=u+v;
+	arr[1]=u-v;
+	arr[2]=u/v;
+	arr[3]=u*v;
+	arr[4]=arr[0]+arr[1];
+	return 0;
+}
+
+
+void main(void) {
+	int x; int y;
+	int arr[5];
+	x=input(); y=input();
+	output(call(x,y,arr));
+}

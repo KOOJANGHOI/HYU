@@ -1,0 +1,24 @@
+int test(int u , int v) {	
+	/* this is comment */
+	if(u==v) return 1;
+	if(u!=v) return 2;
+	v=u;
+
+	if(u>2*v) {
+		u = u+v;
+		u = u-v;
+		u = u*v;
+		if(u<v) return 3;
+		if(u<=v) return 4;
+		if(u>v) return 5;
+		if(u>=v) return 6;
+	}
+
+	int x,y,z,w;
+}
+
+void main(void) {
+	int a,b;
+	a=input();b=input();
+	output(test(a,b));
+}
